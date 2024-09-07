@@ -9,12 +9,13 @@ DB_CONFIG = {
 }
 
 connection = psycopg2.connect(**DB_CONFIG)
+connection.autocommit = True
 cursor = connection.cursor()
 app = Flask(__name__)
 
 
 @app.route('/bookings/<int:user_id>', methods=['GET'])
-def get_all_bookings(user_id):
+def get_all_bookings(user_id: int):
     try:
 
         cursor.callproc('get_all_bookings', [user_id])
@@ -34,7 +35,7 @@ def get_all_bookings(user_id):
 
 
 @app.route('/booking/<int:booking_id>', methods=['GET'])
-def get_booking_by_id(booking_id):
+def get_booking_by_id(booking_id: int):
     try:
         cursor.callproc('get_booking_by_id', [booking_id])
 
@@ -49,6 +50,36 @@ def get_booking_by_id(booking_id):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+# ---Sample body---#
+# {
+#     "user_id": 3,
+#     "property_id": 2,
+#     "checkin_date":"2004-02-12",
+#     "checkout_date":"2013-08-20"
+# }
+
+@app.route('/book', methods=['POST'])
+def create_booking():
+    data = request.get_json()
+
+    try:
+        user_id = data['user_id']
+        checkin_date = data['checkin_date']
+        checkout_date = data['checkout_date']
+        property_id = data['property_id']
+
+        cursor.callproc('create_booking', [user_id, property_id, checkin_date, checkout_date])
+        response = cursor.fetchone()
+
+        return jsonify({
+            "status": "Success",
+            "data": response
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 
 @app.route('/hello', methods=['GET'])
